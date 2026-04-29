@@ -37,6 +37,7 @@ nav:
   - Início: index.md
   - Guia de Instalação: getting-started.md
   - Configuração: configuration.md
+  - Banco de Dados: database.md
   - Endpoints: api.md
   - Desenvolvimento: development.md
   - Deploy: deployment.md

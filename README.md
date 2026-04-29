@@ -5,6 +5,9 @@ API RESTful da plataforma **GarageHub** — sistema de gestão de oficinas mecâ
 ## Stack
 
 - **Python 3.12** + **FastAPI** (ASGI)
+- **SQLAlchemy 2.0 async** + **asyncpg** para banco de dados
+- **Alembic** para migrations
+- **PostgreSQL 16** como banco de dados
 - **Pydantic v2** + **pydantic-settings** para validação e configuração
 - **Gunicorn + Uvicorn** em produção
 - **Ruff** para lint e formatação
@@ -18,17 +21,25 @@ garagehub-backend/
 │   ├── main.py               # App factory + lifespan
 │   ├── core/
 │   │   ├── config.py         # Settings via pydantic-settings
+│   │   ├── database.py       # Engine async + sessão + get_db
 │   │   └── exceptions.py     # Handler centralizado de erros
+│   ├── models/
+│   │   └── base.py           # Base declarativa + UUIDMixin + TimestampMixin
 │   └── api/
 │       └── v1/
 │           ├── router.py
 │           └── routes/
 │               └── health.py
+├── alembic/                  # Migrations
+│   ├── env.py
+│   └── versions/
 ├── tests/
 ├── docs/                     # Documentação MkDocs
+├── alembic.ini
 ├── gunicorn.conf.py
-├── pyproject.toml
+├── docker-compose.yml
 ├── Dockerfile
+├── pyproject.toml
 └── .env.example
 ```
 
@@ -52,8 +63,19 @@ cp .env.example .env
 | `APP_ENV` | `development` | Ambiente de execução |
 | `APP_DEBUG` | `false` | Habilita `/docs` e `/redoc` |
 | `APP_SECRET_KEY` | `change-me-in-production` | Chave secreta da aplicação |
+| `DATABASE_URL` | `postgresql+asyncpg://garagehub:garagehub@localhost:5432/garagehub` | URL de conexão com o banco |
 
 ## Rodando localmente
+
+**Com Docker Compose (recomendado):**
+
+```bash
+docker compose up
+```
+
+Sobe o banco de dados e a aplicação juntos. A API ficará disponível em `http://localhost:8000`.
+
+**Sem Docker (banco externo):**
 
 ```bash
 fastapi dev app/main.py
@@ -63,6 +85,19 @@ Com `APP_DEBUG=true` no `.env`:
 
 - Swagger UI → `http://localhost:8000/docs`
 - ReDoc → `http://localhost:8000/redoc`
+
+## Migrations
+
+```bash
+# aplicar todas as migrations
+alembic upgrade head
+
+# criar nova migration após adicionar/alterar um model
+alembic revision --autogenerate -m "descricao"
+
+# desfazer a última migration
+alembic downgrade -1
+```
 
 ## Testes
 
@@ -79,26 +114,19 @@ ruff check . --fix && ruff format .
 ## Docker
 
 ```bash
-# build
-docker build -t garagehub-backend .
+# subir tudo (app + banco)
+docker compose up
 
-# run
-docker run -p 8000:8000 --env-file .env garagehub-backend
+# apenas o banco (para rodar a app localmente)
+docker compose up db
 ```
-
-O container sobe com Gunicorn + UvicornWorker em `0.0.0.0:8000`.
 
 ## Documentação
 
 ```bash
-# instalar dependências de dev (inclui mkdocs-material)
-pip install -e ".[dev]"
-
-# servir localmente
 mkdocs serve
+# acesse http://localhost:8000
 ```
-
-Documentação disponível em `http://localhost:8000` (porta padrão do MkDocs).
 
 ## Licença
 

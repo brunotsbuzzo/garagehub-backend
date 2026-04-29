@@ -13,5 +13,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "GarageHub API"
     PROJECT_VERSION: str = "0.1.0"
 
+    DATABASE_URL: str = "postgresql+asyncpg://garagehub:garagehub@localhost:5432/garagehub"
+
 
 settings = Settings()
