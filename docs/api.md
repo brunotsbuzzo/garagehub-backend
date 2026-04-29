@@ -22,6 +22,42 @@ Verifica se a API está disponível e aceitando requisições.
 
 ---
 
+## Auth
+
+### `POST /api/v1/auth/login`
+
+Autentica um usuário com email e senha. Retorna um token JWT Bearer.
+
+**Corpo da requisição**
+
+```json
+{
+  "email": "mecanico@garagehub.com",
+  "password": "senha123"
+}
+```
+
+**Resposta `200 OK`**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+**Erros**
+
+| Código | Motivo |
+|---|---|
+| `401` | Credenciais inválidas |
+| `403` | Usuário inativo |
+| `422` | Corpo inválido |
+
+Para detalhes completos sobre o fluxo de autenticação, veja a página [Autenticação](authentication.md).
+
+---
+
 ## Erros
 
 Todos os erros gerados pela aplicação seguem o formato padrão:

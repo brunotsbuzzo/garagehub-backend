@@ -7,7 +7,8 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.core.config import settings
-from app.models.base import Base  # noqa: F401 — ensures all models are imported
+from app.models.base import Base  # noqa: F401
+from app.models.user import User  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

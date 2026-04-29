@@ -8,11 +8,13 @@ As configurações são carregadas via variáveis de ambiente ou arquivo `.env` 
 |---|---|---|---|
 | `APP_ENV` | `str` | `development` | Ambiente de execução (`development`, `production`) |
 | `APP_DEBUG` | `bool` | `false` | Habilita modo debug e expõe `/docs` e `/redoc` |
-| `APP_SECRET_KEY` | `str` | `change-me-in-production` | Chave secreta da aplicação |
+| `APP_SECRET_KEY` | `str` | `change-me-in-production` | Chave de assinatura dos tokens JWT |
 | `API_V1_PREFIX` | `str` | `/api/v1` | Prefixo de todas as rotas v1 |
 | `PROJECT_NAME` | `str` | `GarageHub API` | Nome exibido no Swagger |
 | `PROJECT_VERSION` | `str` | `0.1.0` | Versão exibida no Swagger |
 | `DATABASE_URL` | `str` | `postgresql+asyncpg://garagehub:garagehub@localhost:5432/garagehub` | URL de conexão com o PostgreSQL |
+| `JWT_ALGORITHM` | `str` | `HS256` | Algoritmo de assinatura do JWT |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `int` | `30` | Validade do token de acesso em minutos |
 
 ## Exemplo de `.env`
 
@@ -22,6 +24,9 @@ APP_DEBUG=true
 APP_SECRET_KEY=change-me-in-production
 
 DATABASE_URL=postgresql+asyncpg://garagehub:garagehub@localhost:5432/garagehub
+
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 ## Formato da DATABASE_URL

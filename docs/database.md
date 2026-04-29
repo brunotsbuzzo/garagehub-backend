@@ -47,6 +47,21 @@ class TimestampMixin:
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 ```
 
+### Models existentes
+
+#### `User` (`app/models/user.py`)
+
+Representa um usuário autenticável da plataforma.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | `UUID` | Chave primária (gerada automaticamente) |
+| `email` | `VARCHAR(255)` | Email único, indexado |
+| `hashed_password` | `VARCHAR(255)` | Senha em hash bcrypt |
+| `is_active` | `BOOLEAN` | Indica se o usuário pode se autenticar |
+| `created_at` | `TIMESTAMPTZ` | Data de criação |
+| `updated_at` | `TIMESTAMPTZ` | Data da última atualização |
+
 ### Exemplo de model completo
 
 ```python
