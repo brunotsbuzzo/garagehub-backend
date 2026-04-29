@@ -3,9 +3,11 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from sqlalchemy import text
 
 from app.api.v1.router import router as api_v1_router
 from app.core.config import settings
+from app.core.database import engine
 from app.core.exceptions import AppError, app_error_handler
 
 OPENAPI_TAGS = [
@@ -18,9 +20,10 @@ OPENAPI_TAGS = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # startup
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
     yield
-    # shutdown
+    await engine.dispose()
 
 
 def custom_openapi(app: FastAPI):
