@@ -1,0 +1,42 @@
+site_name: GarageHub API
+site_description: Documentação técnica da API do GarageHub
+site_author: GarageHub Team
+docs_dir: docs
+
+theme:
+  name: material
+  language: pt
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Modo escuro
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Modo claro
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - tables
+  - attr_list
+
+nav:
+  - Início: index.md
+  - Guia de Instalação: getting-started.md
+  - Configuração: configuration.md
+  - Endpoints: api.md
+  - Desenvolvimento: development.md
+  - Deploy: deployment.md
