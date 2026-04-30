@@ -15,6 +15,14 @@ OPENAPI_TAGS = [
         "name": "health",
         "description": "Endpoints para verificação de saúde e disponibilidade da API.",
     },
+    {
+        "name": "auth",
+        "description": "Endpoints de autenticação — login e geração de tokens JWT.",
+    },
+    {
+        "name": "users",
+        "description": "CRUD de usuários — criação, consulta, atualização e desativação.",
+    },
 ]
 
 

@@ -38,6 +38,8 @@ nav:
   - Guia de Instalação: getting-started.md
   - Configuração: configuration.md
   - Banco de Dados: database.md
+  - Autenticação: authentication.md
   - Endpoints: api.md
+  - CLI de Gerenciamento: cli.md
   - Desenvolvimento: development.md
   - Deploy: deployment.md

@@ -9,6 +9,7 @@ API RESTful da plataforma **GarageHub** — sistema de gestão de oficinas mecâ
 - **Alembic** para migrations
 - **PostgreSQL 16** como banco de dados
 - **Pydantic v2** + **pydantic-settings** para validação e configuração
+- **PyJWT** + **passlib/bcrypt** para autenticação JWT
 - **Gunicorn + Uvicorn** em produção
 - **Ruff** para lint e formatação
 - **pytest + httpx** para testes
@@ -22,17 +23,33 @@ garagehub-backend/
 │   ├── core/
 │   │   ├── config.py         # Settings via pydantic-settings
 │   │   ├── database.py       # Engine async + sessão + get_db
-│   │   └── exceptions.py     # Handler centralizado de erros
+│   │   ├── deps.py           # Dependências JWT (get_current_user, get_current_admin)
+│   │   ├── exceptions.py     # Handler centralizado de erros
+│   │   └── security.py       # JWT + hashing de senhas
 │   ├── models/
-│   │   └── base.py           # Base declarativa + UUIDMixin + TimestampMixin
+│   │   ├── base.py           # Base declarativa + UUIDMixin + TimestampMixin
+│   │   ├── user.py           # Model de usuário
+│   │   └── refresh_token.py  # Model de refresh token
+│   ├── schemas/
+│   │   ├── auth.py           # Schemas de login e token
+│   │   └── user.py           # UserResponse, UserCreate, UserUpdate, UserAdminUpdate
+│   ├── services/
+│   │   ├── auth.py           # Login, refresh, logout
+│   │   └── user.py           # CRUD de usuários
 │   └── api/
 │       └── v1/
 │           ├── router.py
 │           └── routes/
-│               └── health.py
+│               ├── health.py
+│               ├── auth.py   # POST /auth/login
+│               └── users.py  # CRUD /users
 ├── alembic/                  # Migrations
 │   ├── env.py
 │   └── versions/
+│       ├── 0001_create_users_table.py
+│       ├── 0002_add_user_profile_fields.py
+│       ├── 0003_remove_customer_type.py
+│       └── 0004_create_refresh_tokens.py
 ├── tests/
 ├── docs/                     # Documentação MkDocs
 ├── alembic.ini
@@ -62,8 +79,10 @@ cp .env.example .env
 |---|---|---|
 | `APP_ENV` | `development` | Ambiente de execução |
 | `APP_DEBUG` | `false` | Habilita `/docs` e `/redoc` |
-| `APP_SECRET_KEY` | `change-me-in-production` | Chave secreta da aplicação |
+| `APP_SECRET_KEY` | `change-me-in-production` | Chave de assinatura dos tokens JWT |
 | `DATABASE_URL` | `postgresql+asyncpg://garagehub:garagehub@localhost:5432/garagehub` | URL de conexão com o banco |
+| `JWT_ALGORITHM` | `HS256` | Algoritmo de assinatura do JWT |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Validade do token de acesso em minutos |
 
 ## Rodando localmente
 
@@ -98,6 +117,128 @@ alembic revision --autogenerate -m "descricao"
 # desfazer a última migration
 alembic downgrade -1
 ```
+
+## Endpoints
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/v1/health` | — | Health check |
+| `POST` | `/api/v1/auth/login` | — | Login — emite access + refresh token |
+| `POST` | `/api/v1/auth/refresh` | — | Renova tokens (rotação automática) |
+| `POST` | `/api/v1/auth/logout` | Token | Revoga sessão + blacklista access token |
+| `GET` | `/api/v1/auth/sessions` | Token | Listar sessões ativas |
+| `DELETE` | `/api/v1/auth/sessions` | Token | Encerrar todas as sessões |
+| `DELETE` | `/api/v1/auth/sessions/{id}` | Token | Revogar sessão específica |
+| `POST` | `/api/v1/users` | — | Criar usuário |
+| `GET` | `/api/v1/users` | Admin | Listar usuários |
+| `GET` | `/api/v1/users/me` | Token | Dados do usuário logado |
+| `GET` | `/api/v1/users/{id}` | Admin | Buscar usuário por ID |
+| `PATCH` | `/api/v1/users/me` | Token | Atualizar próprio perfil |
+| `PATCH` | `/api/v1/users/{id}` | Admin | Atualizar qualquer usuário |
+| `DELETE` | `/api/v1/users/{id}` | Admin | Desativar usuário (soft delete) |
+
+## Autenticação
+
+**Login** — retorna access token (JWT, 30 min) e refresh token (30 dias):
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "senha123"}'
+```
+
+```json
+{
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
+    "expires_in": 1800
+  },
+  "quantity": 1,
+  "message": "Login realizado com sucesso.",
+  "status_code": 200
+}
+```
+
+**Rotas protegidas** — envie o `access_token` no header:
+
+```bash
+curl http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Renovar tokens** — quando o access token expirar:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
+```
+
+O refresh token utilizado é revogado e um novo par é emitido (rotação automática).
+
+**Logout** — revoga o refresh token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
+```
+
+## Usuários
+
+Crie um novo usuário via API:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "senha123", "customer_type": "pessoa_fisica"}'
+```
+
+## Superusuário
+
+Cria o usuário root administrador do sistema, com `is_admin = true`. Similar ao `createsuperuser` do Django.
+
+**Modo interativo (recomendado):**
+
+```bash
+create-superuser
+```
+
+```
+E-mail: admin@garagehub.com
+Senha:
+Confirme a senha:
+Superusuário criado com sucesso.
+  E-mail : admin@garagehub.com
+  ID     : 3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
+**Passando o e-mail via flag** (senha solicitada com segurança no prompt):
+
+```bash
+create-superuser --email admin@garagehub.com
+```
+
+**Modo não-interativo** (para scripts de seed e CI):
+
+```bash
+create-superuser --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD"
+```
+
+> **Atenção:** passar `--password` em linha de comando expõe a senha no histórico do shell. Prefira variáveis de ambiente ou o modo interativo em produção.
+
+**Via Docker:**
+
+```bash
+docker compose exec app create-superuser --email admin@garagehub.com
+```
+
+**Validações aplicadas:**
+
+- E-mail deve ser único no banco
+- Senha com no mínimo 8 caracteres
+- No modo interativo, a senha é confirmada antes de salvar
 
 ## Testes
 
