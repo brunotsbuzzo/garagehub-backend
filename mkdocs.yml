@@ -39,6 +39,7 @@ nav:
   - Configuração: configuration.md
   - Banco de Dados: database.md
   - Autenticação: authentication.md
+  - Controle de Acesso (RBAC): rbac.md
   - Endpoints: api.md
   - CLI de Gerenciamento: cli.md
   - Desenvolvimento: development.md

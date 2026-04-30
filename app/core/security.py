@@ -21,10 +21,20 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(
+    subject: str,
+    roles: list[str],
+    permissions: list[str],
+) -> str:
     jti = str(uuid.uuid4())
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": subject, "exp": expire, "jti": jti}
+    payload = {
+        "sub": subject,
+        "exp": expire,
+        "jti": jti,
+        "roles": roles,
+        "permissions": permissions,
+    }
     return jwt.encode(payload, settings.APP_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 

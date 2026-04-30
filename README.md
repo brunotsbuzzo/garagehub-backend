@@ -23,9 +23,10 @@ garagehub-backend/
 │   ├── core/
 │   │   ├── config.py         # Settings via pydantic-settings
 │   │   ├── database.py       # Engine async + sessão + get_db
-│   │   ├── deps.py           # Dependências JWT (get_current_user, get_current_admin)
+│   │   ├── deps.py           # Dependências JWT + RBAC (require_roles, require_permissions)
 │   │   ├── exceptions.py     # Handler centralizado de erros
-│   │   └── security.py       # JWT + hashing de senhas
+│   │   ├── rbac.py           # Roles, Permissions e mapeamento
+│   │   └── security.py       # JWT (com claims roles/permissions) + hashing
 │   ├── models/
 │   │   ├── base.py           # Base declarativa + UUIDMixin + TimestampMixin
 │   │   ├── user.py           # Model de usuário

@@ -8,6 +8,7 @@ async def _create_superuser(email: str, password: str) -> None:
     from sqlalchemy import select
 
     from app.core.database import AsyncSessionFactory
+    from app.core.enums import UserRole
     from app.core.security import hash_password
     from app.models.user import User
 
@@ -20,9 +21,8 @@ async def _create_superuser(email: str, password: str) -> None:
         user = User(
             email=email,
             hashed_password=hash_password(password),
-            is_admin=True,
             is_active=True,
-            is_team_member=True
+            role=UserRole.ADMINISTRADOR,
         )
         db.add(user)
         await db.commit()

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import AppError
+from app.core.rbac import get_user_permissions, get_user_roles
 from app.core.security import create_access_token, hash_token, verify_password
 from app.models.blacklisted_token import BlacklistedToken
 from app.models.refresh_token import RefreshToken
@@ -29,13 +30,10 @@ async def login(
     if not user.is_active:
         raise AppError(status_code=403, detail="Usuário inativo.")
 
-    # revoga sessões ativas do mesmo dispositivo
     await _revoke_device_sessions(user.id, ip_address, user_agent, db)
-
-    # garante que não ultrapassa o limite de sessões simultâneas
     await _enforce_session_limit(user.id, db)
 
-    access_token = create_access_token(subject=str(user.id))
+    access_token = _build_access_token(user)
     refresh_token = await _create_refresh_token(
         user.id, db, ip_address=ip_address, user_agent=user_agent
     )
@@ -55,12 +53,19 @@ async def refresh(
     if not token or not token.is_valid:
         raise AppError(status_code=401, detail="Refresh token inválido ou expirado.")
 
+    # carrega o usuário para refletir roles/permissões atuais
+    user_result = await db.execute(select(User).where(User.id == token.user_id))
+    user = user_result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        raise AppError(status_code=403, detail="Usuário inativo.")
+
     token.revoked_at = datetime.now(timezone.utc)
     await db.flush()
 
-    access_token = create_access_token(subject=str(token.user_id))
+    access_token = _build_access_token(user)
     new_refresh_token = await _create_refresh_token(
-        token.user_id, db, ip_address=ip_address, user_agent=user_agent
+        user.id, db, ip_address=ip_address, user_agent=user_agent
     )
     return access_token, new_refresh_token
 
@@ -128,12 +133,23 @@ async def revoke_session(
 
     if not token:
         raise AppError(status_code=404, detail="Sessão não encontrada.")
-
     if token.revoked_at is not None:
         raise AppError(status_code=409, detail="Sessão já encerrada.")
 
     token.revoked_at = datetime.now(timezone.utc)
     await db.commit()
+
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+def _build_access_token(user: User) -> str:
+    roles = get_user_roles(user)
+    permissions = get_user_permissions(roles)
+    return create_access_token(
+        subject=str(user.id),
+        roles=[r.value for r in roles],
+        permissions=[p.value for p in permissions],
+    )
 
 
 async def _revoke_device_sessions(
@@ -172,7 +188,6 @@ async def _enforce_session_limit(user_id: uuid.UUID, db: AsyncSession) -> None:
     )
     active = result.scalars().all()
 
-    # revoga os mais antigos para abrir espaço para a nova sessão
     excess = len(active) - (settings.MAX_ACTIVE_SESSIONS - 1)
     if excess > 0:
         for token in active[:excess]:

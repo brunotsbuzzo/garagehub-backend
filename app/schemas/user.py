@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
 
+from app.core.enums import UserRole
+
 
 class UserResponse(BaseModel):
     id: UUID
@@ -10,8 +12,7 @@ class UserResponse(BaseModel):
     is_active: bool
     cpf: Optional[str]
     cnpj: Optional[str]
-    is_admin: bool
-    is_team_member: bool
+    role: UserRole
 
     model_config = {"from_attributes": True}
 
@@ -40,5 +41,4 @@ class UserUpdate(BaseModel):
 
 class UserAdminUpdate(UserUpdate):
     is_active: Optional[bool] = None
-    is_admin: Optional[bool] = None
-    is_team_member: Optional[bool] = None
+    role: Optional[UserRole] = None

@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import UserRole
 from app.core.exceptions import AppError
 from app.core.security import hash_password
 from app.models.user import User
@@ -19,6 +20,7 @@ async def create_user(data: UserCreate, db: AsyncSession) -> User:
         hashed_password=hash_password(data.password),
         cpf=data.cpf,
         cnpj=data.cnpj,
+        role=UserRole.CLIENTE,
     )
     db.add(user)
     await db.commit()
