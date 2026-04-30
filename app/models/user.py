@@ -1,7 +1,15 @@
-from sqlalchemy import Boolean, String
+import enum
+from typing import Optional
+
+from sqlalchemy import Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
+
+
+class CustomerType(str, enum.Enum):
+    pessoa_fisica = "pessoa_fisica"
+    pessoa_juridica = "pessoa_juridica"
 
 
 class User(UUIDMixin, TimestampMixin, Base):
@@ -10,3 +18,10 @@ class User(UUIDMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    cpf: Mapped[Optional[str]] = mapped_column(String(14), nullable=True)
+    cnpj: Mapped[Optional[str]] = mapped_column(String(18), nullable=True)
+    customer_type: Mapped[CustomerType] = mapped_column(
+        Enum(CustomerType, name="customertype"), nullable=False, default=CustomerType.pessoa_fisica
+    )
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_team_member: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
