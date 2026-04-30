@@ -43,9 +43,14 @@ Autentica o usuário e retorna access token e refresh token.
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
-  "token_type": "bearer"
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
+    "expires_in": 1800
+  },
+  "quantity": 1,
+  "message": "Login realizado com sucesso.",
+  "status_code": 200
 }
 ```
 
@@ -71,7 +76,7 @@ Emite um novo par de tokens. O refresh token utilizado é revogado (rotação au
 }
 ```
 
-**Resposta `200 OK`** — novo `access_token` + novo `refresh_token`
+**Resposta `200 OK`** — novo `access_token` + novo `refresh_token` (mesmo envelope de login)
 
 **Erros**
 

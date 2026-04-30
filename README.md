@@ -123,9 +123,12 @@ alembic downgrade -1
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | `GET` | `/api/v1/health` | — | Health check |
-| `POST` | `/api/v1/auth/login` | — | Login — retorna access + refresh token |
+| `POST` | `/api/v1/auth/login` | — | Login — emite access + refresh token |
 | `POST` | `/api/v1/auth/refresh` | — | Renova tokens (rotação automática) |
-| `POST` | `/api/v1/auth/logout` | — | Revoga o refresh token |
+| `POST` | `/api/v1/auth/logout` | Token | Revoga sessão + blacklista access token |
+| `GET` | `/api/v1/auth/sessions` | Token | Listar sessões ativas |
+| `DELETE` | `/api/v1/auth/sessions` | Token | Encerrar todas as sessões |
+| `DELETE` | `/api/v1/auth/sessions/{id}` | Token | Revogar sessão específica |
 | `POST` | `/api/v1/users` | — | Criar usuário |
 | `GET` | `/api/v1/users` | Admin | Listar usuários |
 | `GET` | `/api/v1/users/me` | Token | Dados do usuário logado |
@@ -146,20 +149,25 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
-  "token_type": "bearer"
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
+    "expires_in": 1800
+  },
+  "quantity": 1,
+  "message": "Login realizado com sucesso.",
+  "status_code": 200
 }
 ```
 
-**Rotas protegidas** — envie o access token no header:
+**Rotas protegidas** — envie o `access_token` no header:
 
 ```bash
 curl http://localhost:8000/api/v1/users/me \
   -H "Authorization: Bearer <access_token>"
 ```
 
-**Renovar tokens** — quando o access token expirar, use o refresh token:
+**Renovar tokens** — quando o access token expirar:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/refresh \

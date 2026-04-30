@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 
 import jwt
 from fastapi import Depends
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import AppError
+from app.models.blacklisted_token import BlacklistedToken
 from app.models.user import User
 
 http_bearer = HTTPBearer()
@@ -22,10 +24,18 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, settings.APP_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload["sub"]
+        jti: Optional[str] = payload.get("jti")
     except jwt.ExpiredSignatureError:
         raise AppError(status_code=401, detail="Token expirado.")
     except jwt.PyJWTError:
         raise AppError(status_code=401, detail="Token inválido.")
+
+    if jti:
+        blacklisted = await db.execute(
+            select(BlacklistedToken).where(BlacklistedToken.jti == jti)
+        )
+        if blacklisted.scalar_one_or_none():
+            raise AppError(status_code=401, detail="Token revogado.")
 
     result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
     user = result.scalar_one_or_none()

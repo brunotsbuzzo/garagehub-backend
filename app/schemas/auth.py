@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
+from app.core.config import settings
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -20,7 +22,14 @@ class LogoutRequest(BaseModel):
     refresh_token: str
 
 
-class TokenResponse(BaseModel):
+class TokenData(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    expires_in: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+class TokenResponse(BaseModel):
+    data: TokenData
+    quantity: int = 1
+    message: str
+    status_code: int = 200
