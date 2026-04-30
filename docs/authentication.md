@@ -83,9 +83,49 @@ verify_password("senha123", hashed)  # True
 
 ---
 
-## Criando um usuário (manual / seed)
+## Rotas protegidas
 
-Ainda não existe endpoint de cadastro. Para criar um usuário diretamente no banco:
+Para acessar qualquer endpoint protegido, inclua o token no header `Authorization`:
+
+```bash
+curl http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+Há dois níveis de proteção:
+
+| Dependência | Requisito |
+|---|---|
+| `get_current_user` | Token válido + usuário ativo |
+| `get_current_admin` | Token válido + usuário ativo + `is_admin = true` |
+
+---
+
+## Criando um usuário
+
+Use o endpoint público de cadastro:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "cliente@garagehub.com",
+    "password": "senha-forte",
+    "customer_type": "pessoa_fisica"
+  }'
+```
+
+Para criar o primeiro administrador do sistema, use o comando CLI:
+
+```bash
+create-superuser
+# E-mail: admin@garagehub.com
+# Senha: ••••••••
+# Confirme a senha: ••••••••
+# Superusuário criado com sucesso.
+```
+
+Para promover um usuário existente a administrador, use o endpoint `PATCH /api/v1/users/{user_id}` com `"is_admin": true`, ou diretamente no banco:
 
 ```python
 from app.core.security import hash_password
@@ -94,6 +134,7 @@ from app.models.user import User
 user = User(
     email="admin@garagehub.com",
     hashed_password=hash_password("senha-forte"),
+    is_admin=True,
 )
 session.add(user)
 await session.commit()

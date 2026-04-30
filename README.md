@@ -23,25 +23,30 @@ garagehub-backend/
 │   ├── core/
 │   │   ├── config.py         # Settings via pydantic-settings
 │   │   ├── database.py       # Engine async + sessão + get_db
+│   │   ├── deps.py           # Dependências JWT (get_current_user, get_current_admin)
 │   │   ├── exceptions.py     # Handler centralizado de erros
 │   │   └── security.py       # JWT + hashing de senhas
 │   ├── models/
 │   │   ├── base.py           # Base declarativa + UUIDMixin + TimestampMixin
 │   │   └── user.py           # Model de usuário
 │   ├── schemas/
-│   │   └── auth.py           # Schemas de login e token
+│   │   ├── auth.py           # Schemas de login e token
+│   │   └── user.py           # UserResponse, UserCreate, UserUpdate, UserAdminUpdate
 │   ├── services/
-│   │   └── auth.py           # Lógica de autenticação
+│   │   ├── auth.py           # Lógica de autenticação
+│   │   └── user.py           # CRUD de usuários
 │   └── api/
 │       └── v1/
 │           ├── router.py
 │           └── routes/
 │               ├── health.py
-│               └── auth.py   # POST /auth/login
+│               ├── auth.py   # POST /auth/login
+│               └── users.py  # CRUD /users
 ├── alembic/                  # Migrations
 │   ├── env.py
 │   └── versions/
-│       └── 0001_create_users_table.py
+│       ├── 0001_create_users_table.py
+│       └── 0002_add_user_profile_fields.py
 ├── tests/
 ├── docs/                     # Documentação MkDocs
 ├── alembic.ini
@@ -110,6 +115,20 @@ alembic revision --autogenerate -m "descricao"
 alembic downgrade -1
 ```
 
+## Endpoints
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/v1/health` | — | Health check |
+| `POST` | `/api/v1/auth/login` | — | Login (retorna JWT) |
+| `POST` | `/api/v1/users` | — | Criar usuário |
+| `GET` | `/api/v1/users` | Admin | Listar usuários |
+| `GET` | `/api/v1/users/me` | Token | Dados do usuário logado |
+| `GET` | `/api/v1/users/{id}` | Admin | Buscar usuário por ID |
+| `PATCH` | `/api/v1/users/me` | Token | Atualizar próprio perfil |
+| `PATCH` | `/api/v1/users/{id}` | Admin | Atualizar qualquer usuário |
+| `DELETE` | `/api/v1/users/{id}` | Admin | Desativar usuário (soft delete) |
+
 ## Autenticação
 
 O login é feito via `POST /api/v1/auth/login` com email e senha. A resposta inclui um token JWT Bearer.
@@ -126,6 +145,68 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   "token_type": "bearer"
 }
 ```
+
+Use o token nas rotas protegidas:
+
+```bash
+curl http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## Usuários
+
+Crie um novo usuário via API:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "senha123", "customer_type": "pessoa_fisica"}'
+```
+
+## Superusuário
+
+Cria o usuário root administrador do sistema, com `is_admin = true`. Similar ao `createsuperuser` do Django.
+
+**Modo interativo (recomendado):**
+
+```bash
+create-superuser
+```
+
+```
+E-mail: admin@garagehub.com
+Senha:
+Confirme a senha:
+Superusuário criado com sucesso.
+  E-mail : admin@garagehub.com
+  ID     : 3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
+**Passando o e-mail via flag** (senha solicitada com segurança no prompt):
+
+```bash
+create-superuser --email admin@garagehub.com
+```
+
+**Modo não-interativo** (para scripts de seed e CI):
+
+```bash
+create-superuser --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD"
+```
+
+> **Atenção:** passar `--password` em linha de comando expõe a senha no histórico do shell. Prefira variáveis de ambiente ou o modo interativo em produção.
+
+**Via Docker:**
+
+```bash
+docker compose exec app create-superuser --email admin@garagehub.com
+```
+
+**Validações aplicadas:**
+
+- E-mail deve ser único no banco
+- Senha com no mínimo 8 caracteres
+- No modo interativo, a senha é confirmada antes de salvar
 
 ## Testes
 

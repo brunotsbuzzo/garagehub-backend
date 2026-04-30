@@ -22,6 +22,9 @@ dev = [
     "mkdocs-material>=9.5.0",
 ]
 
+[project.scripts]
+create-superuser = "app.cli:create_superuser"
+
 [tool.setuptools.packages.find]
 include = ["app*"]
 

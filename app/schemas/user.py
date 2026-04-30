@@ -42,4 +42,9 @@ class UserUpdate(BaseModel):
     cpf: Optional[str] = None
     cnpj: Optional[str] = None
     customer_type: Optional[CustomerType] = None
+
+
+class UserAdminUpdate(UserUpdate):
     is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    is_team_member: Optional[bool] = None
