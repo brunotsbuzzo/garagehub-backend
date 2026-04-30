@@ -8,6 +8,7 @@ from alembic import context
 
 from app.core.config import settings
 from app.models.base import Base  # noqa: F401
+from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.user import User  # noqa: F401
 
 config = context.config

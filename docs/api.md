@@ -24,9 +24,11 @@ Verifica se a API está disponível e aceitando requisições.
 
 ## Auth
 
+Para detalhes completos sobre o fluxo, tokens e segurança, veja a página [Autenticação](authentication.md).
+
 ### `POST /api/v1/auth/login`
 
-Autentica um usuário com email e senha. Retorna um token JWT Bearer.
+Autentica o usuário e retorna access token e refresh token.
 
 **Corpo da requisição**
 
@@ -42,6 +44,7 @@ Autentica um usuário com email e senha. Retorna um token JWT Bearer.
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
   "token_type": "bearer"
 }
 ```
@@ -54,7 +57,49 @@ Autentica um usuário com email e senha. Retorna um token JWT Bearer.
 | `403` | Usuário inativo |
 | `422` | Corpo inválido |
 
-Para detalhes completos sobre o fluxo de autenticação, veja a página [Autenticação](authentication.md).
+---
+
+### `POST /api/v1/auth/refresh`
+
+Emite um novo par de tokens. O refresh token utilizado é revogado (rotação automática).
+
+**Corpo da requisição**
+
+```json
+{
+  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4..."
+}
+```
+
+**Resposta `200 OK`** — novo `access_token` + novo `refresh_token`
+
+**Erros**
+
+| Código | Motivo |
+|---|---|
+| `401` | Refresh token inválido, expirado ou já revogado |
+
+---
+
+### `POST /api/v1/auth/logout`
+
+Revoga o refresh token, encerrando a sessão.
+
+**Corpo da requisição**
+
+```json
+{
+  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4..."
+}
+```
+
+**Resposta `204 No Content`**
+
+**Erros**
+
+| Código | Motivo |
+|---|---|
+| `401` | Refresh token inválido ou já revogado |
 
 ---
 

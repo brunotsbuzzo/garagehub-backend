@@ -28,12 +28,13 @@ garagehub-backend/
 │   │   └── security.py       # JWT + hashing de senhas
 │   ├── models/
 │   │   ├── base.py           # Base declarativa + UUIDMixin + TimestampMixin
-│   │   └── user.py           # Model de usuário
+│   │   ├── user.py           # Model de usuário
+│   │   └── refresh_token.py  # Model de refresh token
 │   ├── schemas/
 │   │   ├── auth.py           # Schemas de login e token
 │   │   └── user.py           # UserResponse, UserCreate, UserUpdate, UserAdminUpdate
 │   ├── services/
-│   │   ├── auth.py           # Lógica de autenticação
+│   │   ├── auth.py           # Login, refresh, logout
 │   │   └── user.py           # CRUD de usuários
 │   └── api/
 │       └── v1/
@@ -46,7 +47,9 @@ garagehub-backend/
 │   ├── env.py
 │   └── versions/
 │       ├── 0001_create_users_table.py
-│       └── 0002_add_user_profile_fields.py
+│       ├── 0002_add_user_profile_fields.py
+│       ├── 0003_remove_customer_type.py
+│       └── 0004_create_refresh_tokens.py
 ├── tests/
 ├── docs/                     # Documentação MkDocs
 ├── alembic.ini
@@ -120,7 +123,9 @@ alembic downgrade -1
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | `GET` | `/api/v1/health` | — | Health check |
-| `POST` | `/api/v1/auth/login` | — | Login (retorna JWT) |
+| `POST` | `/api/v1/auth/login` | — | Login — retorna access + refresh token |
+| `POST` | `/api/v1/auth/refresh` | — | Renova tokens (rotação automática) |
+| `POST` | `/api/v1/auth/logout` | — | Revoga o refresh token |
 | `POST` | `/api/v1/users` | — | Criar usuário |
 | `GET` | `/api/v1/users` | Admin | Listar usuários |
 | `GET` | `/api/v1/users/me` | Token | Dados do usuário logado |
@@ -131,7 +136,7 @@ alembic downgrade -1
 
 ## Autenticação
 
-O login é feito via `POST /api/v1/auth/login` com email e senha. A resposta inclui um token JWT Bearer.
+**Login** — retorna access token (JWT, 30 min) e refresh token (30 dias):
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login \
@@ -142,15 +147,34 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4...",
   "token_type": "bearer"
 }
 ```
 
-Use o token nas rotas protegidas:
+**Rotas protegidas** — envie o access token no header:
 
 ```bash
 curl http://localhost:8000/api/v1/users/me \
   -H "Authorization: Bearer <access_token>"
+```
+
+**Renovar tokens** — quando o access token expirar, use o refresh token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
+```
+
+O refresh token utilizado é revogado e um novo par é emitido (rotação automática).
+
+**Logout** — revoga o refresh token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
 ```
 
 ## Usuários
