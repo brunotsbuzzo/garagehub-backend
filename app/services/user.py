@@ -19,7 +19,6 @@ async def create_user(data: UserCreate, db: AsyncSession) -> User:
         hashed_password=hash_password(data.password),
         cpf=data.cpf,
         cnpj=data.cnpj,
-        customer_type=data.customer_type,
     )
     db.add(user)
     await db.commit()

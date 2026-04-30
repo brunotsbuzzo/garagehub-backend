@@ -9,7 +9,7 @@ async def _create_superuser(email: str, password: str) -> None:
 
     from app.core.database import AsyncSessionFactory
     from app.core.security import hash_password
-    from app.models.user import CustomerType, User
+    from app.models.user import User
 
     async with AsyncSessionFactory() as db:
         result = await db.execute(select(User).where(User.email == email))
@@ -22,7 +22,7 @@ async def _create_superuser(email: str, password: str) -> None:
             hashed_password=hash_password(password),
             is_admin=True,
             is_active=True,
-            customer_type=CustomerType.pessoa_fisica,
+            is_team_member=True
         )
         db.add(user)
         await db.commit()
